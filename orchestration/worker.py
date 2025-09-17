@@ -30,7 +30,15 @@ class Worker(Process):
         # Ignore the interrupt signal. Let parent (orchestrator) handle that.
         signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-        self.f = open(self.settings.raw, "rb")
+        # Open the appropriate input file based on format
+        if self.settings.raw:
+            self.f = open(self.settings.raw, "rb")
+            self.file_format = 'tpx3'
+        elif self.settings.advs:
+            self.f = open(self.settings.advs, "rb")
+            self.file_format = 'advs'
+        else:
+            raise ValueError("No input file specified")
 
         while self.keep_processing.is_set():
             try:
@@ -85,7 +93,12 @@ class Worker(Process):
         if self.tot_correction is None and self.settings.hits_tot_correct_file != "0":
             self.tot_correction = numpy.ndarray(TOT_CORRECTION_SHAPE, dtype=numpy.int16, buffer=self.tot_correction_shared.buf)
 
-        hits_chunk, min_toa, max_toa = tpx3format.parse_data_packages(positions, self.f, self.tot_correction, self.settings)
+        if self.file_format == 'tpx3':
+            hits_chunk, min_toa, max_toa = tpx3format.parse_data_packages(positions, self.f, self.tot_correction, self.settings)
+        elif self.file_format == 'advs':
+            hits_chunk, min_toa, max_toa = tpx3format.parse_advs_data_packages(positions, self.f, self.tot_correction, self.settings)
+        else:
+            raise ValueError(f"Unknown file format: {self.file_format}")
 
         return hits_chunk, min_toa, max_toa
 

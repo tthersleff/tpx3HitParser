@@ -69,33 +69,58 @@ class Orchestrator:
         p.start()
         self.writer = p
 
-        # Open main input file
-        f = open(self.settings.raw, "rb")
+        # Open main input file and determine format
+        if self.settings.raw:
+            input_file = self.settings.raw
+            file_format = 'tpx3'
+        elif self.settings.advs:
+            input_file = self.settings.advs
+            file_format = 'advs'
+        else:
+            raise ValueError("No input file specified")
+        
+        f = open(input_file, "rb")
         estimate = os.fstat(f.fileno()).st_size / 8
 
         # Make progress bar to keep track of hits being read
-        self.logger.info("Reading file %s, estimating %d hits" % (self.settings.raw, estimate))
+        self.logger.info("Reading %s file %s, estimating %d hits" % (file_format, input_file, estimate))
         self.progress_bar = tqdm(total=estimate, unit="hits", smoothing=0.1, unit_scale=True)
 
         positions = []
         n_hits = 0
         n_chunks = 0
         chunk_hits = 0
-        for position in tpx3format.read_positions(f):
-            positions.append(position)
-
-            chunk_hits += position[1] // 8
-            n_hits += position[1] // 8
-
-            # Break early when max_hits has been reached
-            if 0 < self.settings.max_hits < n_hits:
-                break
-
-            if chunk_hits > self.settings.cluster_chunk_size:
-                n_chunks += 1
-                self.input_queue.put(positions)
-                positions = []
-                chunk_hits = 0
+        
+        if file_format == 'tpx3':
+            for position in tpx3format.read_positions(f):
+                positions.append(position)
+                chunk_hits += position[1] // 8
+                n_hits += position[1] // 8
+                
+                # Break early when max_hits has been reached
+                if 0 < self.settings.max_hits < n_hits:
+                    break
+                
+                if chunk_hits > self.settings.cluster_chunk_size:
+                    n_chunks += 1
+                    self.input_queue.put(positions)
+                    positions = []
+                    chunk_hits = 0
+        elif file_format == 'advs':
+            for position in tpx3format.read_advs_positions(f):
+                positions.append(position)
+                chunk_hits += position[1] // 16  # ADVS packets are 16 bytes
+                n_hits += position[1] // 16
+                
+                # Break early when max_hits has been reached
+                if 0 < self.settings.max_hits < n_hits:
+                    break
+                
+                if chunk_hits > self.settings.cluster_chunk_size:
+                    n_chunks += 1
+                    self.input_queue.put(positions)
+                    positions = []
+                    chunk_hits = 0
 
         # We don't need the input file anymore in this process
         f.close()

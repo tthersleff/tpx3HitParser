@@ -28,8 +28,24 @@ def main():
     logger.debug(settings)
 
     # Check input
-    if not os.path.exists(settings.raw):
+    if settings.raw and not os.path.exists(settings.raw):
         logger.error("Input file %s does not exist." % settings.raw)
+        return 1
+    
+    if settings.advs and not os.path.exists(settings.advs):
+        logger.error("Input file %s does not exist." % settings.advs)
+        return 1
+    
+    if settings.hits and not os.path.exists(settings.hits):
+        logger.error("Input file %s does not exist." % settings.hits)
+        return 1
+    
+    if settings.clusters and not os.path.exists(settings.clusters):
+        logger.error("Input file %s does not exist." % settings.clusters)
+        return 1
+    
+    if settings.events and not os.path.exists(settings.events):
+        logger.error("Input file %s does not exist." % settings.events)
         return 1
 
     # Basic output check (output writing can still fail on other factors (like no permissions)

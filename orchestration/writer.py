@@ -80,7 +80,9 @@ class Writer(Process):
 
     def finalise(self):
         if self.settings.store_hits:
-            self.io.store_hits(self.settings.raw, self.settings.hits_tot_correct_file,
+            # Determine input file name for metadata
+            input_file = self.settings.raw if self.settings.raw else self.settings.advs
+            self.io.store_hits(input_file, self.settings.hits_tot_correct_file,
                                self.settings.hits_cross_extra_offset, self.min_toa, self.max_toa)
 
         if self.settings.store_clusters:
