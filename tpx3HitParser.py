@@ -118,10 +118,9 @@ def main():
         io.close_write()
         logger.info('Finished building ToT frequency matrix.')
 
-    # TODO: Reimplement these options
-    # # Super Resolution
-    # if settings.correct_super_res:
-    #     e = events.subpixel_event_redistribution(e)
+    # Super Resolution
+    if settings.correct_super_res:
+        e = events.subpixel_event_redistribution(e)
     #
     #
     # if settings.store_predictions:
