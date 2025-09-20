@@ -113,7 +113,9 @@ def main():
         logger.info('Start building ToT frequency matrix...')
         io.open_write(settings.output, overwrite=False, append=True)
         hits = io.write['hits'][()]
-        freq_tot = tpx3format.build_freq_tot(hits, settings.cores)
+        # Use single-chip version that auto-detects chip count
+        from tpx3format.freq_tot_single_chip import build_freq_tot
+        freq_tot = build_freq_tot(hits, settings.cores)
         io.store_freq_tot(freq_tot)
         io.close_write()
         logger.info('Finished building ToT frequency matrix.')
