@@ -72,7 +72,7 @@ class io:
             hits_f.resize(old + len(hits), 0)
             hits_f[old:] = hits
 
-    def store_hits(self, file_name, hits_tot_correct_file, hits_cross_extra_offset, min_toa, max_toa):
+    def store_hits(self, file_name, hits_tot_correct_file, hits_cross_extra_offset, min_toa, max_toa, file_format='tpx3'):
         if 'hits' not in self.write:
             logger.warning("There was no dataset /hits written to the output file. Was nothing processed?")
             return
@@ -81,7 +81,7 @@ class io:
         self.write['hits'].attrs['input_file_name'] = file_name
         self.write['hits'].attrs['min_toa'] = min_toa
         self.write['hits'].attrs['max_toa'] = max_toa
-        self.write['hits'].attrs['shape'] = tpx3format.calculate_image_shape(hits_cross_extra_offset)
+        self.write['hits'].attrs['shape'] = tpx3format.calculate_image_shape(hits_cross_extra_offset, file_format)
 
         if hits_tot_correct_file != "0":
             self.write['hits'].attrs['tot_correction_file'] = hits_tot_correct_file
@@ -148,7 +148,7 @@ class io:
             events_f.resize(old + len(events), 0)
             events_f[old:] = events
 
-    def store_events(self, algorithm, cnn_model, hits_cross_extra_offset, min_toa, max_toa, event_correct_chip_edges):
+    def store_events(self, algorithm, cnn_model, hits_cross_extra_offset, min_toa, max_toa, event_correct_chip_edges, file_format='tpx3'):
         if 'events' not in self.write:
             logger.warning("There was no dataset /events written to the output file. Was nothing processed?")
             return
@@ -157,7 +157,7 @@ class io:
         self.write['events'].attrs['algorithm'] = algorithm
         self.write['events'].attrs['min_toa'] = min_toa
         self.write['events'].attrs['max_toa'] = max_toa
-        self.write['events'].attrs['shape'] = ev.calculate_image_shape(hits_cross_extra_offset, event_correct_chip_edges)
+        self.write['events'].attrs['shape'] = ev.calculate_image_shape(hits_cross_extra_offset, event_correct_chip_edges, file_format)
 
         if algorithm == 'cnn':
             self.write['events'].attrs['cnn_model'] = cnn_model

@@ -92,9 +92,11 @@ class Gpu(Process):
 
         # Only parse if there are any events to parse
         if self.offset > 0:
+            # Determine file format
+            file_format = 'tpx3' if self.settings.raw else 'advs'
             e = events.cnn(self.clusters[:self.offset], self.cluster_info[:self.offset], self.model,
                            self.settings.event_cnn_tot_only, self.settings.hits_cross_extra_offset,
-                           self.settings.cluster_stats
+                           self.settings.cluster_stats, file_format
                            )
             # e = events.localise_events(self.clusters[:self.offset], self.cluster_info[:self.offset], 'centroid', self.settings.cluster_stats)
         else:

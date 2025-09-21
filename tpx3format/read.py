@@ -168,9 +168,22 @@ def check_tot_correction(correct_file):
         return "ToT correction file %s does not contain a tot_correction matrix" % correct_file
 
     data = f['tot_correction']
-
-    logger.info("Found ToT correction file that was created on %s" % data.attrs['creation_date'])
-
+    
+    # Check if the shape is valid (either 4-chip or single-chip)
+    expected_4chip_shape = (1024, 256, 256, 4)
+    expected_1chip_shape = (1024, 256, 256, 1)
+    
+    if data.shape == expected_4chip_shape:
+        logger.info("Found 4-chip ToT correction file that was created on %s" % data.attrs.get('creation_date', 'unknown'))
+    elif data.shape == expected_1chip_shape:
+        logger.info("Found single-chip ToT correction file that was created on %s" % data.attrs.get('creation_date', 'unknown'))
+        logger.info("Single-chip ToT correction will be applied to all chips")
+    else:
+        f.close()
+        return "ToT correction file %s has invalid shape %s. Expected either %s (4-chip) or %s (single-chip)" % (
+            correct_file, data.shape, expected_4chip_shape, expected_1chip_shape)
+    
+    f.close()
     return True
 
 
@@ -180,9 +193,24 @@ def read_tot_correction(correct_file):
         return None
 
     f = h5py.File(correct_file, 'r')
-    data = f['tot_correction']
-
-    return data[()]
+    data = f['tot_correction'][()]
+    f.close()
+    
+    # If single-chip format, expand to 4-chip format
+    if data.shape == (1024, 256, 256, 1):
+        logger.info("Expanding single-chip ToT correction to 4-chip format")
+        expanded_data = np.zeros((1024, 256, 256, 4), dtype=data.dtype)
+        # Copy the single chip data to all 4 chips
+        expanded_data[:, :, :, 0] = data[:, :, :, 0]  # Chip 0
+        expanded_data[:, :, :, 1] = data[:, :, :, 0]  # Chip 1
+        expanded_data[:, :, :, 2] = data[:, :, :, 0]  # Chip 2
+        expanded_data[:, :, :, 3] = data[:, :, :, 0]  # Chip 3
+        return expanded_data
+    elif data.shape == (1024, 256, 256, 4):
+        logger.info("Using 4-chip ToT correction as-is")
+        return data
+    else:
+        raise ValueError(f"Invalid ToT correction shape: {data.shape}. Expected (1024, 256, 256, 1) or (1024, 256, 256, 4)")
 
 
 def remove_cross_hits(hits):
@@ -283,8 +311,23 @@ def apply_toa_phase2_correction(x, cToA):
     return cToA
 
 
-def calculate_image_shape(hits_cross_extra_offset):
-    return 512 + 2 * hits_cross_extra_offset
+def calculate_image_shape(hits_cross_extra_offset, file_format='tpx3'):
+    """
+    Calculate image shape based on file format and cross extra offset.
+    
+    Args:
+        hits_cross_extra_offset: Extra offset for cross pixels
+        file_format: 'tpx3' for 4-chip (512x512) or 'advs' for single-chip (256x256)
+    
+    Returns:
+        Image shape (width/height)
+    """
+    if file_format == 'advs':
+        # ADVS files are single-chip (256x256)
+        return 256 + 2 * hits_cross_extra_offset
+    else:
+        # TPX3 files are 4-chip (512x512)
+        return 512 + 2 * hits_cross_extra_offset
 
 
 def combine_chips(hits, hits_cross_extra_offset):

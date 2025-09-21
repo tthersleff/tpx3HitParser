@@ -148,7 +148,7 @@ def calculate_tot(cluster_matrix, cluster_info, events, cluster_stats):
     return events
 
 
-def cnn(cluster_matrix, cluster_info, model, tot_only, hits_cross_extra_offset, cluster_stats):
+def cnn(cluster_matrix, cluster_info, model, tot_only, hits_cross_extra_offset, cluster_stats, file_format='tpx3'):
     # Delete ToA matrices, required for ToT only CNN
     if tot_only:
         cluster_matrix = np.delete(cluster_matrix, 1, 1)
@@ -170,7 +170,7 @@ def cnn(cluster_matrix, cluster_info, model, tot_only, hits_cross_extra_offset, 
     events['x'] = events['x'] + predictions[:, 1]
     events['y'] = events['y'] + predictions[:, 0]
 
-    shape = tpx3format.calculate_image_shape(hits_cross_extra_offset)
+    shape = tpx3format.calculate_image_shape(hits_cross_extra_offset, file_format)
 
     # Check for events outside matrix shape, and delete those
     ind_del = (events['x'] > shape) | (events['y'] > shape)
@@ -193,8 +193,26 @@ def event_info_datatype(cluster_stats):
     return numpy.dtype(dt)
 
 
-def calculate_image_shape(hits_cross_extra_offset, events_correct_chip_edges):
-    if events_correct_chip_edges:
-        return 512 + 2 * 2
+def calculate_image_shape(hits_cross_extra_offset, events_correct_chip_edges, file_format='tpx3'):
+    """
+    Calculate image shape based on file format, cross extra offset, and edge correction.
+    
+    Args:
+        hits_cross_extra_offset: Extra offset for cross pixels
+        events_correct_chip_edges: Whether to apply chip edge correction
+        file_format: 'tpx3' for 4-chip (512x512) or 'advs' for single-chip (256x256)
+    
+    Returns:
+        Image shape (width/height)
+    """
+    if file_format == 'advs':
+        # ADVS files are single-chip (256x256)
+        base_size = 256
     else:
-        return 512 + 2 * hits_cross_extra_offset
+        # TPX3 files are 4-chip (512x512)
+        base_size = 512
+    
+    if events_correct_chip_edges:
+        return base_size + 2 * 2
+    else:
+        return base_size + 2 * hits_cross_extra_offset

@@ -79,11 +79,14 @@ class Writer(Process):
                 self.max_toa = max(self.max_toa, max_toa)
 
     def finalise(self):
+        # Determine file format
+        file_format = 'tpx3' if self.settings.raw else 'advs'
+        
         if self.settings.store_hits:
             # Determine input file name for metadata
             input_file = self.settings.raw if self.settings.raw else self.settings.advs
             self.io.store_hits(input_file, self.settings.hits_tot_correct_file,
-                               self.settings.hits_cross_extra_offset, self.min_toa, self.max_toa)
+                               self.settings.hits_cross_extra_offset, self.min_toa, self.max_toa, file_format)
 
         if self.settings.store_clusters:
             self.io.store_clusters(self.settings.cluster_time_window, self.settings.cluster_max_sum_tot,
@@ -92,7 +95,7 @@ class Writer(Process):
 
         if self.settings.store_events:
             self.io.store_events(self.settings.algorithm, self.settings.event_cnn_model,
-                                 self.settings.hits_cross_extra_offset, self.min_toa, self.max_toa, self.settings.event_correct_chip_edges)
+                                 self.settings.hits_cross_extra_offset, self.min_toa, self.max_toa, self.settings.event_correct_chip_edges, file_format)
 
         self.io.close_write()
 
