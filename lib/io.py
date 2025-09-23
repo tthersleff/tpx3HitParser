@@ -78,13 +78,13 @@ class io:
             return
 
         self.write_base_attributes('hits')
-        self.write['hits'].attrs['input_file_name'] = file_name
-        self.write['hits'].attrs['min_toa'] = min_toa
-        self.write['hits'].attrs['max_toa'] = max_toa
-        self.write['hits'].attrs['shape'] = tpx3format.calculate_image_shape(hits_cross_extra_offset, file_format)
+        self.write['hits'].attrs['input_file_name'] = str(file_name)
+        self.write['hits'].attrs['min_toa'] = int(min_toa)
+        self.write['hits'].attrs['max_toa'] = int(max_toa)
+        self.write['hits'].attrs['shape'] = int(tpx3format.calculate_image_shape(hits_cross_extra_offset, file_format))
 
         if hits_tot_correct_file != "0":
-            self.write['hits'].attrs['tot_correction_file'] = hits_tot_correct_file
+            self.write['hits'].attrs['tot_correction_file'] = str(hits_tot_correct_file)
 
     def replace_hits(self, hits):
         self.write['hits'][...] = hits
@@ -154,13 +154,13 @@ class io:
             return
 
         self.write_base_attributes('events')
-        self.write['events'].attrs['algorithm'] = algorithm
-        self.write['events'].attrs['min_toa'] = min_toa
-        self.write['events'].attrs['max_toa'] = max_toa
-        self.write['events'].attrs['shape'] = ev.calculate_image_shape(hits_cross_extra_offset, event_correct_chip_edges, file_format)
+        self.write['events'].attrs['algorithm'] = str(algorithm)
+        self.write['events'].attrs['min_toa'] = int(min_toa)
+        self.write['events'].attrs['max_toa'] = int(max_toa)
+        self.write['events'].attrs['shape'] = int(ev.calculate_image_shape(hits_cross_extra_offset, event_correct_chip_edges, file_format))
 
         if algorithm == 'cnn':
-            self.write['events'].attrs['cnn_model'] = cnn_model
+            self.write['events'].attrs['cnn_model'] = str(cnn_model)
 
     def replace_events(self, events):
         self.write['events'][...] = events

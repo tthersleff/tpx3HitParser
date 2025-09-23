@@ -37,6 +37,9 @@ class Worker(Process):
         elif self.settings.advs:
             self.f = open(self.settings.advs, "rb")
             self.file_format = 'advs'
+        elif self.settings.t3p:
+            self.f = open(self.settings.t3p, "rb")
+            self.file_format = 't3p'
         else:
             raise ValueError("No input file specified")
 
@@ -97,6 +100,8 @@ class Worker(Process):
             hits_chunk, min_toa, max_toa = tpx3format.parse_data_packages(positions, self.f, self.tot_correction, self.settings)
         elif self.file_format == 'advs':
             hits_chunk, min_toa, max_toa = tpx3format.parse_advs_data_packages(positions, self.f, self.tot_correction, self.settings)
+        elif self.file_format == 't3p':
+            hits_chunk, min_toa, max_toa = tpx3format.parse_t3p_data_packages(positions, self.f, self.tot_correction, self.settings)
         else:
             raise ValueError(f"Unknown file format: {self.file_format}")
 

@@ -317,13 +317,13 @@ def calculate_image_shape(hits_cross_extra_offset, file_format='tpx3'):
     
     Args:
         hits_cross_extra_offset: Extra offset for cross pixels
-        file_format: 'tpx3' for 4-chip (512x512) or 'advs' for single-chip (256x256)
+        file_format: 'tpx3' for 4-chip (512x512), 'advs' for single-chip (256x256), or 't3p' for single-chip (256x256)
     
     Returns:
         Image shape (width/height)
     """
-    if file_format == 'advs':
-        # ADVS files are single-chip (256x256)
+    if file_format in ['advs', 't3p']:
+        # ADVS and T3P files are single-chip (256x256)
         return 256 + 2 * hits_cross_extra_offset
     else:
         # TPX3 files are 4-chip (512x512)

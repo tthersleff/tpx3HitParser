@@ -11,3 +11,9 @@ from tpx3format.read_advs import read_advs_positions
 from tpx3format.read_advs import parse_advs_data_packages
 from tpx3format.read_advs import check_advs_file
 from tpx3format.read_advs import calculate_advs_image_shape
+
+# T3P format support
+from tpx3format.read_t3p import read_t3p_positions
+from tpx3format.read_t3p import parse_t3p_data_packages
+from tpx3format.read_t3p import check_t3p_file
+from tpx3format.read_t3p import calculate_t3p_image_shape

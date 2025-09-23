@@ -66,6 +66,7 @@ def parse_config(argv=None):
     input_group_excl = input_group.add_mutually_exclusive_group(required=True)
     input_group_excl.add_argument("--raw", metavar='FILE', help="Read raw .tpx3")
     input_group_excl.add_argument("--advs", metavar='FILE', help="Read raw .advs")
+    input_group_excl.add_argument("--t3p", metavar='FILE', help="Read raw .t3p")
     input_group_excl.add_argument("--hits", metavar='FILE', help="Read .h5 file containing /hits")
     input_group_excl.add_argument("--clusters", metavar='FILE', help="Read .h5 file containing /clusters")
     input_group_excl.add_argument("--events", metavar='FILE', help="Read .h5 file containing /events")
