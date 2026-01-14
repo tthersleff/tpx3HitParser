@@ -95,14 +95,15 @@ def parse_config(argv=None):
 
     # Constants
     c_group = parser.add_argument_group('constants')
-    c_group.add_argument("--cores", metavar='N', type=int, help='Number of cores to use')
+    c_group.add_argument("--cores", metavar='N', type=int, default=1, help='Number of cores to use')
     c_group.add_argument("--max_hits", metavar='N', type=int, help='Maximum number of hits to read (0: infinite)')
     c_group.add_argument("--hits_remove_cross", metavar='0/1',  type=str2bool, help='Remove the middle border pixels between the chips')
     c_group.add_argument("--hits_combine_chips",metavar='0/1', type=str2bool, help='Combine the chips to one matrix')
-    c_group.add_argument("--hits_cross_extra_offset", metavar='N', type=int, help='Extra offset used for the cross pixels per chip when combining the chips')
-    c_group.add_argument("--hits_tot_correct_file", metavar='FILE', help='ToT correction file, or 0 for no correction')
-    c_group.add_argument("--hits_toa_phase_correction", type=int, metavar='N', help='Apply ToA correction. 0=None, 1=Maastricht-Pll30, 2=Basel-Pll30, 3=Pll94')
-    c_group.add_argument("--hits_tot_threshold", type=int, metavar='N', help='Below this ToT threshold hits are not stored')
+    c_group.add_argument("--hits_cross_extra_offset", metavar='N', type=int, default=0, help='Extra offset used for the cross pixels per chip when combining the chips')
+    c_group.add_argument("--hits_tot_correct_file", metavar='FILE', default="0", help='ToT correction file, or 0 for no correction')
+    c_group.add_argument("--hits_toa_phase_correction", type=int, metavar='N', default=0, help='Apply ToA correction. 0=None, 1=Maastricht-Pll30, 2=Basel-Pll30, 3=Pll94')
+    c_group.add_argument("--hits_toa_lut_file", metavar='FILE', help='ToA LUT XML file for data-driven correction, or 0 for no correction')
+    c_group.add_argument("--hits_tot_threshold", type=int, metavar='N', default=0, help='Below this ToT threshold hits are not stored')
     c_group.add_argument("--hits_correct_chip_edges", type=str2bool, metavar='0/1', help='Correct chip edges for hits (not applied on data used for clustering)')
     c_group.add_argument("--cluster_time_window", type=int, metavar='N', help='Maximum time interval between individual hits to cluster them (in fine ToA values=1.56ns)')
     c_group.add_argument("--cluster_min_size", type=int, metavar='N', help='Minimum cluster size')
@@ -126,6 +127,10 @@ def parse_config(argv=None):
 
     if settings.store_events and not settings.E:
         parser.error('Parsing events (-E) is required when storing events (--store_events)')
+
+    # Validate mutually exclusive ToA correction options
+    if settings.hits_toa_phase_correction and settings.hits_toa_phase_correction > 0 and settings.hits_toa_lut_file and settings.hits_toa_lut_file != "0":
+        parser.error('Cannot use both --hits_toa_phase_correction and --hits_toa_lut_file. Choose one correction method.')
 
     if settings.E and not settings.C:
         parser.error('Parsing clusters (-C) is required when parsing events (-E)')

@@ -65,6 +65,14 @@ def main():
         logger.error(c)
         return 1
 
+    # Check if we have a loadable ToA LUT file
+    if hasattr(settings, 'hits_toa_lut_file') and settings.hits_toa_lut_file and settings.hits_toa_lut_file != "0":
+        try:
+            tpx3format.read_toa_lut(settings.hits_toa_lut_file)
+        except ValueError as e:
+            logger.error(str(e))
+            return 1
+
     # Test the importing of the compiled Rust library of clfind
     # This is a copy of the code in clusters/clfind/__init__.py
     try:

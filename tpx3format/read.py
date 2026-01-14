@@ -1,5 +1,6 @@
 import logging
 import struct
+import xml.etree.ElementTree as ET
 
 import h5py
 import numpy as np
@@ -311,6 +312,88 @@ def apply_toa_phase2_correction(x, cToA):
     return cToA
 
 
+def read_toa_lut(lut_file):
+    """
+    Read ToA LUT from XML file.
+    
+    Args:
+        lut_file: Path to the XML LUT file
+        
+    Returns:
+        numpy.ndarray: 256x256 array of offset values, or None if no correction requested
+    """
+    if lut_file == "0" or lut_file is None:
+        # No LUT correction requested
+        return None
+
+    if not os.path.exists(lut_file):
+        raise ValueError(f"ToA LUT file ({lut_file}) does not exist")
+
+    try:
+        tree = ET.parse(lut_file)
+        root = tree.getroot()
+        
+        # Find the PerPixelOffsets section
+        per_pixel_offsets = root.find('PerPixelOffsets')
+        if per_pixel_offsets is None:
+            raise ValueError(f"ToA LUT file {lut_file} does not contain PerPixelOffsets section")
+        
+        # Initialize 256x256 array
+        lut_array = np.zeros((256, 256), dtype=np.int32)
+        
+        # Parse all pixel elements
+        pixels = per_pixel_offsets.findall('Pixel')
+        if len(pixels) != 256 * 256:
+            raise ValueError(f"ToA LUT file {lut_file} contains {len(pixels)} pixels, expected {256 * 256}")
+        
+        for pixel in pixels:
+            x = int(pixel.get('x'))
+            y = int(pixel.get('y'))
+            offset_ticks = int(pixel.get('offset_ticks'))
+            
+            if x < 0 or x >= 256 or y < 0 or y >= 256:
+                raise ValueError(f"Invalid pixel coordinates ({x}, {y}) in LUT file {lut_file}")
+            
+            lut_array[y, x] = offset_ticks
+        
+        logger.info(f"Loaded ToA LUT from {lut_file} with {len(pixels)} pixel offsets")
+        return lut_array
+        
+    except ET.ParseError as e:
+        raise ValueError(f"Failed to parse ToA LUT XML file {lut_file}: {e}")
+    except Exception as e:
+        raise ValueError(f"Error reading ToA LUT file {lut_file}: {e}")
+
+
+def apply_toa_lut_correction(toa_lut, x, y, cToA):
+    """
+    Apply ToA correction using LUT values.
+    
+    Args:
+        toa_lut: 256x256 numpy array of offset values
+        x: X coordinate of the pixel
+        y: Y coordinate of the pixel  
+        cToA: Current ToA value to correct
+        
+    Returns:
+        int: Corrected ToA value
+    """
+    if toa_lut is None:
+        return cToA
+    
+    # Ensure coordinates are within bounds
+    if x < 0 or x >= 256 or y < 0 or y >= 256:
+        logger.warning(f"Pixel coordinates ({x}, {y}) out of bounds for LUT correction")
+        return cToA
+    
+    # Subtract the offset from the LUT (as specified in requirements)
+    # Note: LUT is stored as [y, x] but accessed as [x, y] - this is correct for the XML format
+    offset = toa_lut[y, x]
+    corrected_toa = cToA - offset
+    
+    return corrected_toa
+
+
 def calculate_image_shape(hits_cross_extra_offset, file_format='tpx3'):
     """
     Calculate image shape based on file format and cross extra offset.
@@ -378,13 +461,22 @@ def marker_pixel(hits, pixel):
 
 
 def parse_data_packages(positions, f, tot_correction, settings):
+    # Load ToA LUT if specified
+    toa_lut = None
+    if hasattr(settings, 'hits_toa_lut_file') and settings.hits_toa_lut_file and settings.hits_toa_lut_file != "0":
+        try:
+            toa_lut = read_toa_lut(settings.hits_toa_lut_file)
+        except ValueError as e:
+            logger.error(f"Failed to load ToA LUT: {e}")
+            raise
+
     # Allocate space for storing hits
     n_hits = sum(pos[1] // 8 for pos in positions)
     hits = np.zeros(n_hits, dtype=dt_hit)
 
     i = 0
     for pos in positions:
-        for hit in parse_data_package(f, pos, tot_correction, settings.hits_tot_threshold, settings.hits_toa_phase_correction):
+        for hit in parse_data_package(f, pos, tot_correction, settings.hits_tot_threshold, settings.hits_toa_phase_correction, toa_lut):
             if hit is not None:
                 hits[i] = hit
                 i += 1
@@ -409,7 +501,7 @@ def parse_data_packages(positions, f, tot_correction, settings):
     return hits, min_toa, max_toa
 
 
-def parse_data_package(f, pos, tot_correction, tot_threshold, toa_phase_correction):
+def parse_data_package(f, pos, tot_correction, tot_threshold, toa_phase_correction, toa_lut=None):
     f.seek(pos[0])
     b = f.read(pos[1])
 
@@ -454,6 +546,10 @@ def parse_data_package(f, pos, tot_correction, tot_threshold, toa_phase_correcti
             elif toa_phase_correction == 3:
                 toa = apply_toa_phase2_correction(x, toa)
                 toa = apply_toa_railroad_correction_phase2(x, toa)
+        
+        # Apply LUT-based ToA correction if specified
+        if toa_lut is not None:
+            toa = apply_toa_lut_correction(toa_lut, x, y, toa)
 
         # Calculate the full time by using the combined info of:
         #   * the SPIDR time (16 bit)

@@ -11,6 +11,7 @@ import numpy as np
 import os
 
 from lib.constants import dt_hit
+from tpx3format.read import read_toa_lut, apply_toa_lut_correction
 
 logger = logging.getLogger('root')
 
@@ -76,6 +77,15 @@ def parse_advs_data_packages(positions, f, tot_correction, settings):
     Returns:
         Tuple of (hits_array, min_toa, max_toa)
     """
+    # Load ToA LUT if specified
+    toa_lut = None
+    if hasattr(settings, 'hits_toa_lut_file') and settings.hits_toa_lut_file and settings.hits_toa_lut_file != "0":
+        try:
+            toa_lut = read_toa_lut(settings.hits_toa_lut_file)
+        except ValueError as e:
+            logger.error(f"Failed to load ToA LUT: {e}")
+            raise
+    
     # Calculate total number of hits
     n_hits = sum(pos[1] // ADVS_PACKET_SIZE for pos in positions)
     hits = np.zeros(n_hits, dtype=dt_hit)
@@ -87,7 +97,7 @@ def parse_advs_data_packages(positions, f, tot_correction, settings):
     max_toa = np.iinfo(np.int64).min
     
     for pos in positions:
-        chunk_hits = parse_advs_data_package(f, pos, tot_correction, settings.hits_tot_threshold)
+        chunk_hits = parse_advs_data_package(f, pos, tot_correction, settings.hits_tot_threshold, toa_lut)
         
         for hit in chunk_hits:
             if hit is not None:
@@ -105,7 +115,7 @@ def parse_advs_data_packages(positions, f, tot_correction, settings):
     return hits, min_toa, max_toa
 
 
-def parse_advs_data_package(f, pos, tot_correction, tot_threshold):
+def parse_advs_data_package(f, pos, tot_correction, tot_threshold, toa_lut=None):
     """
     Parse a single ADVS data package chunk.
     
@@ -114,6 +124,7 @@ def parse_advs_data_package(f, pos, tot_correction, tot_threshold):
         pos: Position tuple [file_position, chunk_size_bytes, chip_id, rollover_counter]
         tot_correction: ToT correction matrix (not used for ADVS)
         tot_threshold: Minimum ToT threshold
+        toa_lut: ToA LUT array for correction (optional)
         
     Yields:
         Hit tuples (chipId, x, y, ToT, ToA) or None for filtered hits
@@ -151,6 +162,10 @@ def parse_advs_data_package(f, pos, tot_correction, tot_threshold):
         # For ADVS files, we use raw ToA values directly
         # The time conversion can be done later if needed
         toa = toa_raw
+        
+        # Apply LUT-based ToA correction if specified
+        if toa_lut is not None:
+            toa = apply_toa_lut_correction(toa_lut, x, y, toa)
         
         # Yield hit tuple: (chipId, x, y, ToT, ToA)
         yield (pos[2], x, y, tot, toa)  # pos[2] is chip_id (always 0 for ADVS)
