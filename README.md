@@ -128,6 +128,18 @@ constants:
 All options are command line options. Defaults for constants are specified in a separate config file `default.cfg`. You can either
 edit this file or make your own and specify this with the `--config` option.
 
+### ADVS ToT and ToA Corrections
+
+When parsing `.advs` files with `--advs`, both `--hits_tot_correct_file` and `--hits_toa_phase_correction` are
+applied (same behavior as TPX3). To validate that corrections are taking effect:
+
+1. Run the parser with corrections disabled (no `--hits_tot_correct_file` or `--hits_toa_phase_correction 0`).
+2. Run again with corrections enabled (e.g. `--hits_tot_correct_file /path/to/correction.h5 --hits_toa_phase_correction 3`).
+3. Compare hit ToT and ToA values (or event positions) between the two outputs; they should differ when corrections are applied.
+
+The ToA phase correction (1=Maastricht-Pll30, 2=Basel-Pll30, 3=Pll94) mirrors TPX3 logic and may require validation for
+your specific ADVS/firmware setup.
+
 ## Citing
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4580458.svg)](https://doi.org/10.5281/zenodo.4580458)
