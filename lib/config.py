@@ -45,10 +45,14 @@ def parse_config(argv=None):
         config_parser.read([conf_file])
         defaults = dict(config_parser.items("Defaults"))
 
-        # Fix boolean values
+        # Fix boolean values. store_true flags treat the config string "False" as
+        # true, so these have to be real booleans before they become defaults.
         defaults['hits_remove_cross'] = config_parser.getboolean('Defaults', 'hits_remove_cross')
         defaults['hits_combine_chips'] = config_parser.getboolean('Defaults', 'hits_combine_chips')
         defaults['event_cnn_tot_only'] = config_parser.getboolean('Defaults', 'event_cnn_tot_only')
+        for key in ('store_hits', 'store_clusters', 'store_events', 'cluster_stats'):
+            if config_parser.has_option('Defaults', key):
+                defaults[key] = config_parser.getboolean('Defaults', key)
     else:
         logger.warning("No config file being used for setting constant defaults")
 
@@ -59,8 +63,6 @@ def parse_config(argv=None):
         parents=[conf_parser],
         formatter_class=lambda prog: argparse.ArgumentDefaultsHelpFormatter(prog, max_help_position=35, width=100)
     )
-    parser.set_defaults(**defaults)
-
     # Input arguments
     input_group = parser.add_argument_group('input arguments')
     input_group_excl = input_group.add_mutually_exclusive_group(required=True)
@@ -119,6 +121,11 @@ def parse_config(argv=None):
 
     # Misc
     parser.add_argument("-v", "--verbose", action='store_true', help='Verbose output')
+
+    # After add_argument, so a config value replaces hardcoded defaults such as
+    # --cores default=1 and --hits_tot_threshold default=0.
+    if defaults:
+        parser.set_defaults(**defaults)
 
     settings = parser.parse_args(remaining_argv)
 
